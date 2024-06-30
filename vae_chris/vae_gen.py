@@ -6,7 +6,7 @@ import numpy as np
 
 # Assuming your VAE class is named VAE and you have a function to load the model
 # Define your VAE architecture and load the trained weights
-model = VAE(latent_dim=100)  # Instantiate your VAE with the appropriate parameters
+model = VAE(latent_dim=20)  # Instantiate your VAE with the appropriate parameters
 model.load_state_dict(torch.load('vae_cifar10.pt'))
 model.eval()  # Set the model to evaluation mode
 
@@ -17,7 +17,7 @@ std = torch.tensor([0.5, 0.5, 0.5])
 # Generate random latent vectors
 num_samples = 5
 with torch.no_grad():
-    z = torch.randn(num_samples, 100)  # Assuming latent_dim is 20
+    z = torch.randn(num_samples, 20)  # Assuming latent_dim is 20
 
     # Decode latent vectors to images
     reconstructed_imgs = model.decode(z).cpu()

@@ -3,7 +3,7 @@ import torch.nn as nn
 
 # Define the VAE architecture
 class VAE(nn.Module):
-    def __init__(self, latent_dim=100):
+    def __init__(self, latent_dim=20):
         super(VAE, self).__init__()
         self.latent_dim = latent_dim
 

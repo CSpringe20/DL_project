@@ -23,7 +23,7 @@ test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = VAE(latent_dim=100).to(device)
+model = VAE(latent_dim=20).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 def train(epoch):
