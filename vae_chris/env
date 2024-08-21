@@ -1,5 +1,0 @@
-conda create -n vae-env python=3.8
-conda activate vae-env
-
-conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia
-
