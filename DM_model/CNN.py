@@ -4,7 +4,6 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 
 # Define transformations for the training data
@@ -46,12 +45,12 @@ def training():
 
     # Initializing in a separate cell so we can easily add more epochs to the same run
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    writer = SummaryWriter('runs/fashion_trainer_{}'.format(timestamp))
     epoch_number = 0
 
     EPOCHS = 5
 
     best_vloss = 1_000_000.
+    losess = []
 
     for epoch in range(EPOCHS):
         print('EPOCH {}:'.format(epoch_number + 1))
@@ -79,8 +78,6 @@ def training():
             if i % 1000 == 999:
                 last_loss = running_loss / 1000 # loss per batch
                 print('  batch {} loss: {}'.format(i + 1, last_loss))
-                tb_x = epoch_number * len(train_loader) + i + 1
-                writer.add_scalar('Loss/train', last_loss, tb_x)
                 running_loss = 0.
 
 
