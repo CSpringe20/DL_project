@@ -33,11 +33,10 @@ class SimpleCNN(nn.Module):
 
 def training():
     # Load datasets from the two directories
-    dataset = datasets.ImageFolder(root='./DMdatasets', transform=transform)
+    dataset = datasets.ImageFolder(root='./DM datasets', transform=transform)
     train_set, val_set = torch.utils.data.random_split(dataset, [100000, 20000])
     train_loader = DataLoader(train_set, batch_size=4)
-    val_loader = DataLoader(val_set, batch_size=4
-                            )
+    val_loader = DataLoader(val_set, batch_size=4)
     print(dataset.classes)
     
     # Initialize the model, loss function, and optimizer
