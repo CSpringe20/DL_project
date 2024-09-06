@@ -50,7 +50,7 @@ def training(batch_size):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     epoch_number = 0
 
-    EPOCHS = 3
+    EPOCHS = 5
 
     best_vloss = 1_000_000.
     losess = []
