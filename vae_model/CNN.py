@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader, ConcatDataset
 import torch.nn.functional as F
 from datetime import datetime
 from tqdm import tqdm
-import matplotlib
 import matplotlib.pyplot as plt
 
 # Define transformations for the training data
@@ -36,10 +35,8 @@ class SimpleCNN(nn.Module):
 
 def training(batch_size):
     # Load datasets from the two directories
-    cifar10 = datasets.ImageFolder(root='./DM_model/DM datasets/cifar10', transform=transform)
-    vae_dataset = datasets.ImageFolder(root='./vae_model/vae_generated_dataset', transform=transform)
-    combined_dataset = ConcatDataset([cifar10, vae_dataset])
-    train_set, val_set = torch.utils.data.random_split(combined_dataset, [100000, 20000])
+    dataset = datasets.ImageFolder(root='./vae_model/VAE datasets', transform=transform)
+    train_set, val_set = torch.utils.data.random_split(dataset, [100000, 20000])
     train_loader = DataLoader(train_set, batch_size=batch_size)
     val_loader = DataLoader(val_set, batch_size=batch_size)
     # Initialize the model, loss function, and optimizer
