@@ -5,6 +5,8 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from datetime import datetime
+from tqdm import tqdm
+import matplotlib as mpl
 
 # Define transformations for the training data
 transform = transforms.Compose([
@@ -20,7 +22,7 @@ class SimpleCNN(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         self.fc1 = nn.Linear(64 * 32 * 32, 128)
-        self.fc2 = nn.Linear(128, 2)  # Assuming 2 classes
+        self.fc2 = nn.Linear(128, 2)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
@@ -30,13 +32,12 @@ class SimpleCNN(nn.Module):
         x = self.fc2(x)
         return x
 
-def training():
+def training(batch_size):
     # Load datasets from the two directories
-    dataset = datasets.ImageFolder(root='./DM datasets', transform=transform)
+    dataset = datasets.ImageFolder(root='./DM_model/DM datasets', transform=transform)
     train_set, val_set = torch.utils.data.random_split(dataset, [100000, 20000])
-    train_loader = DataLoader(train_set, batch_size=4)
-    val_loader = DataLoader(val_set, batch_size=4)
-    print(dataset.classes)
+    train_loader = DataLoader(train_set, batch_size=batch_size)
+    val_loader = DataLoader(val_set, batch_size=batch_size)
     
     # Initialize the model, loss function, and optimizer
     model = SimpleCNN()
@@ -47,7 +48,7 @@ def training():
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     epoch_number = 0
 
-    EPOCHS = 5
+    EPOCHS = 2
 
     best_vloss = 1_000_000.
     losess = []
@@ -57,11 +58,11 @@ def training():
 
         # Make sure gradient tracking is on, and do a pass over the data
         model.train(True)
-        
-        running_loss = 0.
-        last_loss = 0.
-
-        for i, (images, labels) in enumerate(train_loader):
+        running_loss=0.
+        tot=0
+        progress_bar = tqdm(train_loader, desc=f'Epoch {epoch_number + 1}', leave=True)
+        for images, labels in progress_bar:
+            tot+=1
             optimizer.zero_grad()
             # Make predictions for this batch
             outputs = model(images)
@@ -74,35 +75,24 @@ def training():
             optimizer.step()
 
             # Gather data and report
+            losess.append(loss.item())
             running_loss += loss.item()
-            if i % 1000 == 999:
-                last_loss = running_loss / 1000 # loss per batch
-                print('  batch {} loss: {}'.format(i + 1, last_loss))
-                running_loss = 0.
+            progress_bar.set_postfix(loss=running_loss/tot)
 
-
-
-        running_vloss = 0.0
-        # Set the model to evaluation mode, disabling dropout and using population
-        # statistics for batch normalization.
         model.eval()
 
-        # Disable gradient computation and reduce memory consumption.
+        correct = 0
+        total = 0
         with torch.no_grad():
             for j, (vimages, vlabels) in enumerate(val_loader):
                 voutputs = model(vimages)
                 vloss = criterion(voutputs, vlabels)
                 running_vloss += vloss
-
+                _, predicted = torch.max(vloss.data, 1)
+                total += vlabels.size(0)
+                correct += (predicted == vlabels).sum().item()
         avg_vloss = running_vloss / (j + 1)
-        print('LOSS train {} valid {}'.format(last_loss, avg_vloss))
-
-        # Log the running loss averaged per batch
-        # for both training and validation
-        writer.add_scalars('Training vs. Validation Loss',
-                        { 'Training' : last_loss, 'Validation' : avg_vloss },
-                        epoch_number + 1)
-        writer.flush()
+        print('LOSS train {} valid {} ACC {}'.format(losess[-1], avg_vloss, correct/total))
 
         # Track best performance, and save the model's state
         if avg_vloss < best_vloss:
@@ -110,6 +100,8 @@ def training():
             model_path = './models/model_{}_{}'.format(timestamp, epoch_number)
             torch.save(model.state_dict(), model_path)
         epoch_number += 1
+    mpl.plot(losess)
+    mpl.show()
 
 
 def loader(ts, en):
@@ -118,4 +110,4 @@ def loader(ts, en):
     model.load_state_dict(params)
     return model
 
-training()
+training(32)
