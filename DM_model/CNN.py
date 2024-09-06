@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -6,7 +7,8 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from datetime import datetime
 from tqdm import tqdm
-import matplotlib as mpl
+import matplotlib
+import matplotlib.pyplot as plt
 
 # Define transformations for the training data
 transform = transforms.Compose([
@@ -42,20 +44,18 @@ def training(batch_size):
     # Initialize the model, loss function, and optimizer
     model = SimpleCNN()
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.00001)
 
     # Initializing in a separate cell so we can easily add more epochs to the same run
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     epoch_number = 0
 
-    EPOCHS = 2
+    EPOCHS = 3
 
     best_vloss = 1_000_000.
     losess = []
 
     for epoch in range(EPOCHS):
-        print('EPOCH {}:'.format(epoch_number + 1))
-
         # Make sure gradient tracking is on, and do a pass over the data
         model.train(True)
         running_loss=0.
@@ -83,31 +83,35 @@ def training(batch_size):
 
         correct = 0
         total = 0
+        running_vloss = 0
         with torch.no_grad():
-            for j, (vimages, vlabels) in enumerate(val_loader):
+            for vimages, vlabels in val_loader:
                 voutputs = model(vimages)
                 vloss = criterion(voutputs, vlabels)
-                running_vloss += vloss
-                _, predicted = torch.max(vloss.data, 1)
+                running_vloss += vloss.item()
+                _, predicted = torch.max(voutputs.data, 1)
                 total += vlabels.size(0)
                 correct += (predicted == vlabels).sum().item()
-        avg_vloss = running_vloss / (j + 1)
-        print('LOSS train {} valid {} ACC {}'.format(losess[-1], avg_vloss, correct/total))
+            avg_vloss = running_vloss / len(val_loader)
+            print('LOSS train {} valid {} ACC {}'.format(losess[-1], avg_vloss, correct/total))
 
-        # Track best performance, and save the model's state
-        if avg_vloss < best_vloss:
-            best_vloss = avg_vloss
-            model_path = './models/model_{}_{}'.format(timestamp, epoch_number)
-            torch.save(model.state_dict(), model_path)
-        epoch_number += 1
-    mpl.plot(losess)
-    mpl.show()
+            # Track best performance, and save the model's state
+            if avg_vloss < best_vloss:
+                best_vloss = avg_vloss
+                model_path = './DM_model/models/model_{}_{}'.format(timestamp, epoch_number)
+                torch.save(model.state_dict(), model_path)
+            epoch_number += 1
+    step=100000/batch_size
+    plt.plot(losess)
+    plt.xticks(np.arange(0, step*EPOCHS +1, step), map(str, np.arange(0, EPOCHS +1, 1)))
+    plt.savefig('./DM_model/plots/model_{}.png'.format(timestamp))
+    plt.show()
 
 
 def loader(ts, en):
-    params=torch.load('./model_{}_{}'.format(ts, en))
+    params=torch.load('./DM_model/models/model_{}_{}'.format(ts, en))
     model = SimpleCNN()
     model.load_state_dict(params)
     return model
 
-training(32)
+training(100)
