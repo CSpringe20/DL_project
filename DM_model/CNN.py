@@ -7,8 +7,10 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from datetime import datetime
 from tqdm import tqdm
-import matplotlib
 import matplotlib.pyplot as plt
+import os
+from PIL import Image
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
 # Define transformations for the training data
 transform = transforms.Compose([
@@ -44,7 +46,7 @@ def training(batch_size):
     # Initialize the model, loss function, and optimizer
     model = SimpleCNN()
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.00001)
+    optimizer = optim.Adam(model.parameters(), lr=0.000001)
 
     # Initializing in a separate cell so we can easily add more epochs to the same run
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -54,6 +56,8 @@ def training(batch_size):
 
     best_vloss = 1_000_000.
     losess = []
+    all_preds = []
+    all_labels = []
 
     for epoch in range(EPOCHS):
         # Make sure gradient tracking is on, and do a pass over the data
@@ -80,9 +84,6 @@ def training(batch_size):
             progress_bar.set_postfix(loss=running_loss/tot)
 
         model.eval()
-
-        correct = 0
-        total = 0
         running_vloss = 0
         with torch.no_grad():
             for vimages, vlabels in val_loader:
@@ -90,10 +91,10 @@ def training(batch_size):
                 vloss = criterion(voutputs, vlabels)
                 running_vloss += vloss.item()
                 _, predicted = torch.max(voutputs.data, 1)
-                total += vlabels.size(0)
-                correct += (predicted == vlabels).sum().item()
+                all_preds.extend(predicted.tolist())
+                all_labels.extend(vlabels)
             avg_vloss = running_vloss / len(val_loader)
-            print('LOSS train {} valid {} ACC {}'.format(losess[-1], avg_vloss, correct/total))
+            print('LOSS train {} valid {}'.format(losess[-1], avg_vloss))
 
             # Track best performance, and save the model's state
             if avg_vloss < best_vloss:
@@ -101,6 +102,11 @@ def training(batch_size):
                 model_path = './DM_model/models/model_{}_{}'.format(timestamp, epoch_number)
                 torch.save(model.state_dict(), model_path)
             epoch_number += 1
+    cm = confusion_matrix(all_labels, all_preds, labels=dataset.classes)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=dataset.classes)
+    disp.plot()
+    plt.savefig('./DM_model/plots/confusion_{}.png'.format(timestamp))
+    plt.show()
     step=100000/batch_size
     plt.plot(losess)
     plt.xticks(np.arange(0, step*EPOCHS +1, step), map(str, np.arange(0, EPOCHS +1, 1)))
@@ -114,4 +120,23 @@ def loader(ts, en):
     model.load_state_dict(params)
     return model
 
+def test(model):
+    model.eval()
+    other_path="./vae_model/VAE datasets/vae_generated_dataset"
+    tot=0
+    gen=0
+    progress_bar = tqdm(os.listdir(other_path), desc='Test', leave=True)
+    for img_name in progress_bar:
+        img_path = os.path.join(other_path, img_name)
+        img = Image.open(img_path)
+        img = transform(img)
+        img = img.unsqueeze(0)  # Add batch dimension
+        with torch.no_grad():
+            preds = model(img)
+        _, predicted = torch.max(preds.data, 1)
+        gen+=(predicted.item()==1)
+        tot+=1
+        progress_bar.set_postfix(acc=gen*100/tot)
+        
 training(100)
+#test(loader("20240906", "214215_4"))
