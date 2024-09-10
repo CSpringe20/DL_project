@@ -54,7 +54,6 @@ def training(batch_size):
 
     EPOCHS = 5
 
-    best_vloss = 1_000_000.
     losess = []
     all_preds = []
     all_labels = []
@@ -95,14 +94,12 @@ def training(batch_size):
                 all_labels.extend(vlabels)
             avg_vloss = running_vloss / len(val_loader)
             print('LOSS train {} valid {}'.format(losess[-1], avg_vloss))
-
-            # Track best performance, and save the model's state
-            if avg_vloss < best_vloss:
-                best_vloss = avg_vloss
-                model_path = './DM_model/models/model_{}_{}'.format(timestamp, epoch_number)
-                torch.save(model.state_dict(), model_path)
             epoch_number += 1
-    cm = confusion_matrix(all_labels, all_preds, labels=dataset.classes)
+    cm = confusion_matrix(all_labels, all_preds)
+    acc=(cm[0][0]+cm[1][1])*100/cm.sum()
+    print('ACCURACY {}'.format(acc))
+    model_path = './DM_model/models/model_{}_{}'.format(timestamp, int(acc))
+    torch.save(model.state_dict(), model_path)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=dataset.classes)
     disp.plot()
     plt.savefig('./DM_model/plots/confusion_{}.png'.format(timestamp))
@@ -122,21 +119,21 @@ def loader(ts, en):
 
 def test(model):
     model.eval()
-    other_path="./vae_model/VAE datasets/vae_generated_dataset"
-    tot=0
-    gen=0
-    progress_bar = tqdm(os.listdir(other_path), desc='Test', leave=True)
-    for img_name in progress_bar:
-        img_path = os.path.join(other_path, img_name)
-        img = Image.open(img_path)
-        img = transform(img)
-        img = img.unsqueeze(0)  # Add batch dimension
-        with torch.no_grad():
+    with torch.no_grad():
+        other_path="./vae_model/VAE datasets/vae_generated_dataset"
+        tot=0
+        gen=0
+        progress_bar = tqdm(os.listdir(other_path), desc='Test', leave=True)
+        for img_name in progress_bar:
+            img_path = os.path.join(other_path, img_name)
+            img = Image.open(img_path)
+            img = transform(img)
+            img = img.unsqueeze(0)  # Add batch dimension
             preds = model(img)
-        _, predicted = torch.max(preds.data, 1)
-        gen+=(predicted.item()==1)
-        tot+=1
-        progress_bar.set_postfix(acc=gen*100/tot)
+            _, predicted = torch.max(preds.data, 1)
+            gen+=(predicted.item()==1)
+            tot+=1
+            progress_bar.set_postfix(acc=gen*100/tot)
         
 training(100)
 #test(loader("20240906", "214215_4"))
