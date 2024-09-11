@@ -94,20 +94,24 @@ def training(batch_size):
             avg_vloss = running_vloss / len(val_loader)
             print('LOSS train {} valid {}'.format(losess[-1], avg_vloss))
             epoch_number += 1
-    cm = confusion_matrix(all_labels, all_preds)
-    acc=(cm[0][0]+cm[1][1])*100/cm.sum()
-    print('ACCURACY {}'.format(acc))
-    model_path = './vae_model/models/model_{}_{}'.format(timestamp, int(acc))
+    cm_all = confusion_matrix(all_labels, all_preds)
+    cm_last = confusion_matrix(all_labels[-len(all_labels)//EPOCHS:], all_preds[-len(all_preds)//EPOCHS:])
+    acc_all=(cm_all[0][0]+cm_all[1][1])*100/cm_all.sum()
+    acc_last=(cm_last[0][0]+cm_last[1][1])*100/cm_last.sum()
+    print('TOTAL ACCURACY {} LAST EPOCH ACCURACY {}'.format(acc_all, acc_last))
+    model_path = './vae_model/models/model_{}_{}'.format(timestamp, int(acc_last))
     torch.save(model.state_dict(), model_path)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=dataset.classes)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm_all,display_labels=dataset.classes)
     disp.plot()
-    plt.savefig('./vae_model/plots/confusion_{}.png'.format(timestamp))
+    plt.savefig('./vae_model/plots/confusion_all_{}.png'.format(timestamp))
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm_last,display_labels=dataset.classes)
+    disp.plot()
     plt.show()
+    plt.savefig('./vae_model/plots/confusion_last_{}.png'.format(timestamp))
     step=100000/batch_size
     plt.plot(losess)
     plt.xticks(np.arange(0, step*EPOCHS +1, step), map(str, np.arange(0, EPOCHS +1, 1)))
     plt.savefig('./vae_model/plots/model_{}.png'.format(timestamp))
-    plt.show()
 
 
 def loader(ts, en):
