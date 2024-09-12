@@ -171,5 +171,5 @@ def test(model):
             plt.imshow(forsure_ori[i][2].permute(1,2,0), interpolation='nearest')
         plt.show()
         
-#training(100)
-test(loader("20240912_172513", "69"))
+training(100)
+#test(loader("20240912_172513", "69"))
