@@ -1,3 +1,4 @@
+import heapq
 import numpy as np
 import torch
 import torch.nn as nn
@@ -109,11 +110,14 @@ def training(batch_size):
     plt.savefig('./DM_model/plots/confusion_all_{}.png'.format(timestamp))
     disp = ConfusionMatrixDisplay(confusion_matrix=cm_last,display_labels=dataset.classes)
     disp.plot()
+    plt.title("Last epoch(Acc="+str(int(acc_last))+"%)")
     plt.savefig('./DM_model/plots/confusion_last_{}.png'.format(timestamp))
     plt.show()
     step=100000/batch_size
     plt.plot(losess)
     plt.xticks(np.arange(0, step*EPOCHS +1, step), map(str, np.arange(0, EPOCHS +1, 1)))
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
     plt.savefig('./DM_model/plots/model_{}.png'.format(timestamp))
 
 
@@ -129,17 +133,43 @@ def test(model):
         other_path="./vae_model/VAE datasets/vae_generated_dataset"
         tot=0
         gen=0
+        forsure_gen=[]
+        forsure_ori=[]
         progress_bar = tqdm(os.listdir(other_path), desc='Test', leave=True)
         for img_name in progress_bar:
             img_path = os.path.join(other_path, img_name)
             img = Image.open(img_path)
             img = transform(img)
-            img = img.unsqueeze(0)  # Add batch dimension
-            preds = model(img)
+            img_ = img.unsqueeze(0)  # Add batch dimension
+            preds = model(img_)
             _, predicted = torch.max(preds.data, 1)
             gen+=(predicted.item()==1)
             tot+=1
-            progress_bar.set_postfix(acc=gen*100/tot)
+            if len(forsure_ori) < 16:
+                heapq.heappush(forsure_ori, (preds.data[0,0].item(), tot, img))
+            else:
+                heapq.heappushpop(forsure_ori, (preds.data[0,0].item(), tot, img))
+            if len(forsure_gen) < 16:
+                heapq.heappush(forsure_gen, (preds.data[0,1].item(), tot, img))
+            else:
+                heapq.heappushpop(forsure_gen, (preds.data[0,1].item(), tot, img))
+            progress_bar.set_postfix(generated=gen*100/tot)
+            
+        plt.figure(figsize=(4,4)).suptitle("Classified as generated")
+        for i in range(16):
+            plt.subplot(4,4,i+1)
+            plt.title(round(forsure_gen[i][0], 2))
+            plt.axis('off')
+            plt.imshow(forsure_gen[i][2].permute(1,2,0), interpolation='nearest')
+        plt.show()
+
+        plt.figure(figsize=(4,4)).suptitle("Classified as originals")
+        for i in range(16):
+            plt.subplot(4,4,i+1)
+            plt.title(round(forsure_ori[i][0], 2))
+            plt.axis('off')
+            plt.imshow(forsure_ori[i][2].permute(1,2,0), interpolation='nearest')
+        plt.show()
         
-training(100)
-#test(loader("20240906", "214215_4"))
+#training(100)
+test(loader("20240912_172513", "69"))
