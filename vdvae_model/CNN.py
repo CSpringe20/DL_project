@@ -1,18 +1,18 @@
 import heapq
 import numpy as np
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 import torch.nn.functional as F
 from datetime import datetime
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
 from PIL import Image
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
 # Define transformations for the training data
 transform = transforms.Compose([
@@ -39,7 +39,7 @@ class SimpleCNN(nn.Module):
 
 def training(batch_size):
     # Load datasets from the two directories
-    dataset = datasets.ImageFolder(root='./DM_model/DM datasets', transform=transform)
+    dataset = datasets.ImageFolder(root='./vdvae_model/generated_images', transform=transform)
     train_set, val_set = torch.utils.data.random_split(dataset, [100000, 20000])
     train_loader = DataLoader(train_set, batch_size=batch_size)
     val_loader = DataLoader(val_set, batch_size=batch_size)
@@ -54,7 +54,7 @@ def training(batch_size):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     epoch_number = 0
 
-    EPOCHS = 20
+    EPOCHS = 5
 
     losess = []
     all_preds = []
@@ -97,32 +97,32 @@ def training(batch_size):
             avg_vloss = running_vloss / len(val_loader)
             print('LOSS train {} valid {}'.format(losess[-1], avg_vloss))
             epoch_number += 1
-        scheduler.step()
+            scheduler.step()
     cm_all = confusion_matrix(all_labels, all_preds)
     cm_last = confusion_matrix(all_labels[-len(all_labels)//EPOCHS:], all_preds[-len(all_preds)//EPOCHS:])
     acc_all=(cm_all[0][0]+cm_all[1][1])*100/cm_all.sum()
     acc_last=(cm_last[0][0]+cm_last[1][1])*100/cm_last.sum()
     print('TOTAL ACCURACY {} LAST EPOCH ACCURACY {}'.format(acc_all, acc_last))
-    model_path = './DM_model/models/model_{}_{}'.format(timestamp, int(acc_last))
+    model_path = './vdvae_model/models/model_{}_{}'.format(timestamp, int(acc_last))
     torch.save(model.state_dict(), model_path)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm_all,display_labels=dataset.classes)
     disp.plot()
-    plt.savefig('./DM_model/plots/confusion_all_{}.png'.format(timestamp))
+    plt.savefig('./vdvae_model/plots/confusion_all_{}.png'.format(timestamp))
     disp = ConfusionMatrixDisplay(confusion_matrix=cm_last,display_labels=dataset.classes)
     disp.plot()
     plt.title("Last epoch(Acc="+str(int(acc_last))+"%)")
-    plt.savefig('./DM_model/plots/confusion_last_{}.png'.format(timestamp))
+    plt.savefig('./vdvae_model/plots/confusion_last_{}.png'.format(timestamp))
     plt.show()
     step=100000/batch_size
     plt.plot(losess)
     plt.xticks(np.arange(0, step*EPOCHS +1, step), map(str, np.arange(0, EPOCHS +1, 1)))
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
-    plt.savefig('./DM_model/plots/model_{}.png'.format(timestamp))
+    plt.savefig('./vdvae_model/plots/model_{}.png'.format(timestamp))
 
 
 def loader(ts, en):
-    params=torch.load('./DM_model/models/model_{}_{}'.format(ts, en))
+    params=torch.load('./vdvae_model/models/model_{}_{}'.format(ts, en))
     model = SimpleCNN()
     model.load_state_dict(params)
     return model
@@ -130,7 +130,7 @@ def loader(ts, en):
 def test(model):
     model.eval()
     with torch.no_grad():
-        other_path="./vae_model/VAE datasets/vae_generated_dataset"
+        other_path="./DM_model/DM datasets/DM"
         tot=0
         gen=0
         forsure_gen=[]
@@ -172,6 +172,4 @@ def test(model):
         plt.show()
         
 training(100)
-#test(loader("20240912_172513", "69"))
-
-
+#test(loader("20240913_205819", "99"))
