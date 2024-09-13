@@ -126,7 +126,7 @@ model_vae = loader("20240913_090257", "97", model_type="vae")
 model_dm = loader("20240912_214248", "70", model_type="dm")
 
 # Load an input image and preprocess it
-image = '29_6'
+image = '4_6'
 input_image = Image.open(f"./DM_model/DM_datasets/cifar10/{image}.png")  # Replace with your image path
 transform = transforms.Compose([transforms.Resize((32, 32)), transforms.ToTensor()])
 input_image = transform(input_image)
@@ -150,3 +150,48 @@ plt.show()
 # Print the cross-correlation results for review
 for i, max_cross_corr in enumerate(cross_correlation_max_vals):
     print(f"Feature Map {i + 1}: Max Cross-Correlation = {max_cross_corr:.4f}")
+
+
+# Function to compute the full cross-correlation matrix between VAE and DM feature maps
+def compute_cross_correlation_matrix(feature_maps_vae, feature_maps_dm):
+    feature_maps_vae = feature_maps_vae[0].cpu().numpy()  # Remove batch dimension and convert to numpy
+    feature_maps_dm = feature_maps_dm[0].cpu().numpy()
+
+    num_vae_maps = feature_maps_vae.shape[0]  # Number of VAE feature maps (filters)
+    num_dm_maps = feature_maps_dm.shape[0]  # Number of DM feature maps (filters)
+
+    cross_correlation_matrix = np.zeros((num_vae_maps, num_dm_maps))  # Create a 2D matrix
+
+    # Iterate over each VAE and DM feature map pair to compute cross-correlation
+    for i in range(num_vae_maps):
+        vae_map = feature_maps_vae[i]
+
+        for j in range(num_dm_maps):
+            dm_map = feature_maps_dm[j]
+
+            # Compute the cross-correlation between the feature maps
+            cross_corr = compute_cross_correlation(vae_map, dm_map)
+
+            # Find the maximum cross-correlation value
+            max_cross_corr = np.max(np.abs(cross_corr))  # Take the absolute max for alignment
+
+            # Store the result in the matrix
+            cross_correlation_matrix[i, j] = max_cross_corr
+
+    return cross_correlation_matrix
+
+# Compute the full cross-correlation matrix
+cross_correlation_matrix = compute_cross_correlation_matrix(feature_maps_vae, feature_maps_dm)
+
+# Plot the 32x32 grid as a heatmap
+plt.figure(figsize=(10, 8))
+plt.imshow(cross_correlation_matrix, cmap='viridis', aspect='auto')
+plt.colorbar(label='Max Cross-Correlation')
+plt.title('Cross-Correlation Between VAE and DM Feature Maps')
+plt.xlabel('DM Feature Maps')
+plt.ylabel('VAE Feature Maps')
+plt.show()
+
+# Optionally, print the cross-correlation matrix for review
+print("Cross-Correlation Matrix:")
+print(cross_correlation_matrix)

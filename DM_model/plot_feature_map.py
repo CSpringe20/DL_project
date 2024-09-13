@@ -99,8 +99,8 @@ def plot_feature_maps(feature_maps, save_dir=None, filename=None):
 model = loader("20240912_172513", "69", model_type="dm")
 
 # Load an input image and preprocess it
-image = '82_1'
-input_image = Image.open(f"./DM_model/DM_datasets/cifar10/{image}.png")  # Replace with your image path
+image = 'cat_0994'
+input_image = Image.open(f"./vae_model/VAE_datasets/vdvae/{image}.png")  # Replace with your image path
 transform = transforms.Compose([transforms.Resize((32, 32)), transforms.ToTensor()])
 input_image = transform(input_image)
 

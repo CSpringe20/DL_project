@@ -100,8 +100,8 @@ model_vae = loader("20240913_090257", "97", model_type="vae")
 #model_dm = loader("20240913_014241", "70", model_type="dm")
 
 # Load an input image and preprocess it
-image = '82_1'
-input_image = Image.open(f"./DM_model/DM_datasets/cifar10/{image}.png")  # Replace with your image path
+image = 'ship_2814'
+input_image = Image.open(f"./vae_model/VAE_datasets/vdvae/{image}.png")  # Replace with your image path
 transform = transforms.Compose([transforms.Resize((32, 32)), transforms.ToTensor()])
 input_image = transform(input_image)
 
