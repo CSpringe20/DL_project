@@ -130,7 +130,7 @@ def loader(ts, en):
 def test(model):
     model.eval()
     with torch.no_grad():
-        other_path="./vae_model/VAE datasets/vae_generated_dataset"
+        other_path="./vae_model/VAE datasets/vdvae"
         tot=0
         gen=0
         forsure_gen=[]
@@ -171,7 +171,7 @@ def test(model):
             plt.imshow(forsure_ori[i][2].permute(1,2,0), interpolation='nearest')
         plt.show()
         
-training(100)
-#test(loader("20240912_172513", "69"))
+#training(100)
+test(loader("20240912_214248", "70"))
 
 
