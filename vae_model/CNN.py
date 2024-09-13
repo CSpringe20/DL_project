@@ -54,7 +54,7 @@ def training(batch_size):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     epoch_number = 0
 
-    EPOCHS = 5
+    EPOCHS = 20
 
     losess = []
     all_preds = []
@@ -171,5 +171,5 @@ def test(model):
             plt.imshow(forsure_ori[i][2].permute(1,2,0), interpolation='nearest')
         plt.show()
         
-#training(100)
-test(loader("20240912_205819", "99"))
+training(100)
+#test(loader("20240912_205819", "99"))
