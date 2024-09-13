@@ -32,7 +32,7 @@ class SimpleCNN(nn.Module):
         return x
 
 # Define a loader function to load model parameters based on the model type
-def loader(ts, en, model_type="dm"):
+def loader(ts, en, model_type="vae"):
     # Initialize the SimpleCNN model
     model = SimpleCNN()
 
@@ -96,7 +96,8 @@ def plot_feature_maps(feature_maps, save_dir=None, filename=None):
         plt.show()
 
 # Load your trained model
-model = loader("20240912_172513", "69", model_type="dm")
+model_vae = loader("20240913_090257", "97", model_type="vae")
+#model_dm = loader("20240913_014241", "70", model_type="dm")
 
 # Load an input image and preprocess it
 image = '82_1'
@@ -105,7 +106,8 @@ transform = transforms.Compose([transforms.Resize((32, 32)), transforms.ToTensor
 input_image = transform(input_image)
 
 # Get the feature maps from the first conv layer
-feature_maps = get_conv1_feature_maps(model, input_image)
+feature_maps_vae = get_conv1_feature_maps(model_vae, input_image)
+#feature_maps_dm = get_conv1_feature_maps(model_dm, input_image)
 
 # Plot and save the feature maps
-plot_feature_maps(feature_maps, save_dir='./DM_model/plots/filters', filename=f"{image}_conv1_feature_maps.png")
+plot_feature_maps(feature_maps_vae, save_dir='./vae_model/plots/filters', filename=f"{image}_conv1_feature_maps.png")

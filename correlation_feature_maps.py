@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import os
 from PIL import Image
+from scipy.signal import correlate2d
 
 # Define transformations for the training data
 transform = transforms.Compose([
@@ -32,7 +33,7 @@ class SimpleCNN(nn.Module):
         return x
 
 # Define a loader function to load model parameters based on the model type
-def loader(ts, en, model_type="dm"):
+def loader(ts, en, model_type="vae"):
     # Initialize the SimpleCNN model
     model = SimpleCNN()
 
@@ -95,17 +96,57 @@ def plot_feature_maps(feature_maps, save_dir=None, filename=None):
     else:
         plt.show()
 
-# Load your trained model
-model = loader("20240912_172513", "69", model_type="dm")
+
+# Function to compute cross-correlation between two 2D feature maps
+def compute_cross_correlation(feature_map_vae, feature_map_dm):
+    # Cross-correlate feature maps along spatial dimensions (height, width)
+    return correlate2d(feature_map_vae, feature_map_dm, mode='full')
+
+# Function to compute the maximum cross-correlation value for all feature maps
+def compare_feature_maps_cross_correlation(feature_maps_vae, feature_maps_dm):
+    feature_maps_vae = feature_maps_vae[0].cpu().numpy()  # Remove batch dimension and convert to numpy
+    feature_maps_dm = feature_maps_dm[0].cpu().numpy()
+
+    cross_correlation_max_vals = []
+    for i in range(feature_maps_vae.shape[0]):  # Iterate through all feature maps
+        vae_map = feature_maps_vae[i]
+        dm_map = feature_maps_dm[i]
+
+        # Compute the cross-correlation between the feature maps
+        cross_corr = compute_cross_correlation(vae_map, dm_map)
+
+        # Find the maximum cross-correlation value
+        max_cross_corr = np.max(np.abs(cross_corr))  # Take the absolute max for alignment
+        cross_correlation_max_vals.append(max_cross_corr)
+
+    return cross_correlation_max_vals
+
+# Load the models and input image as per the previous code
+model_vae = loader("20240913_090257", "97", model_type="vae")
+model_dm = loader("20240912_214248", "70", model_type="dm")
 
 # Load an input image and preprocess it
-image = '82_1'
+image = '29_6'
 input_image = Image.open(f"./DM_model/DM_datasets/cifar10/{image}.png")  # Replace with your image path
 transform = transforms.Compose([transforms.Resize((32, 32)), transforms.ToTensor()])
 input_image = transform(input_image)
 
-# Get the feature maps from the first conv layer
-feature_maps = get_conv1_feature_maps(model, input_image)
 
-# Plot and save the feature maps
-plot_feature_maps(feature_maps, save_dir='./DM_model/plots/filters', filename=f"{image}_conv1_feature_maps.png")
+# Get the feature maps from the first convolutional layer
+feature_maps_vae = get_conv1_feature_maps(model_vae, input_image)
+feature_maps_dm = get_conv1_feature_maps(model_dm, input_image)
+
+# Compare feature maps using cross-correlation
+cross_correlation_max_vals = compare_feature_maps_cross_correlation(feature_maps_vae, feature_maps_dm)
+
+# Plot the maximum cross-correlation values for all feature maps
+plt.figure(figsize=(10, 5))
+plt.bar(range(1, len(cross_correlation_max_vals) + 1), cross_correlation_max_vals, color='blue')
+plt.title('Max Cross-Correlation Between VAE and DM Feature Maps')
+plt.xlabel('Feature Map Index')
+plt.ylabel('Max Cross-Correlation')
+plt.show()
+
+# Print the cross-correlation results for review
+for i, max_cross_corr in enumerate(cross_correlation_max_vals):
+    print(f"Feature Map {i + 1}: Max Cross-Correlation = {max_cross_corr:.4f}")
